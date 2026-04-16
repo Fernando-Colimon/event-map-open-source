@@ -88,3 +88,30 @@ export async function addFriend(friendEmail) {
 
   return response.json();
 }
+
+export async function getUser(userId) {
+  const response = await fetch(`${API_BASE_URL}/users/${userId}`);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Failed to fetch user");
+  }
+  return response.json();
+}
+
+export async function getUserEvents(userId) {
+  const response = await fetch(`${API_BASE_URL}/events/?creator_user_id=${userId}`);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Failed to fetch user events");
+  }
+  return response.json();
+}
+
+export async function getFriends(userId) {
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/friends`);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Failed to fetch friends");
+  }
+  return response.json();
+}

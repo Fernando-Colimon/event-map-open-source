@@ -60,7 +60,7 @@ export default function EventsPage() {
           )}
 
           {!loadingEvents && !eventError && events.length > 0 && (
-            <div className="grid gap-4">
+            <div className="overflow-y-auto max-h-[60vh] pr-2 grid gap-4">
               {events.map((event) => (
                 <div
                   key={event.id}
