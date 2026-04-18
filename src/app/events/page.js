@@ -8,6 +8,7 @@ export default function EventsPage() {
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [eventError, setEventError] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     async function loadEvents() {
@@ -24,6 +25,20 @@ export default function EventsPage() {
 
     loadEvents();
   }, []);
+
+  async function handleDelete(eventId) {
+    if (!confirm("Are you sure you want to delete this event?")) return;
+    setDeletingId(eventId);
+    try {
+      await deleteEvent(eventId);
+      setEvents(events.filter((e) => e.id !== eventId));
+    } catch (err) {
+      alert("Failed to delete event");
+      console.error(err);
+    } finally {
+      setDeletingId(null);
+    } 
+  }
 
   return (
     <main className="min-h-screen flex flex-col bg-gray-50 px-4">
@@ -66,6 +81,7 @@ export default function EventsPage() {
                   key={event.id}
                   className="bg-white rounded-xl shadow-sm border border-gray-200 p-5"
                 >
+                  
                   <h2 className="text-xl font-semibold text-gray-800">
                     {event.title}
                   </h2>

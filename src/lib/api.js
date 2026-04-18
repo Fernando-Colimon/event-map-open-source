@@ -28,6 +28,14 @@ export async function getEvents() {
   return response.json();
 }
 
+export async function deleteEvent(eventId) {
+  const response = await fetch(`${API_BASE_URL}/events/${eventId}/`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("failed to delete event");
+  return response.json();
+}
+
 export async function registerUser(userData) {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: "POST",
