@@ -11,10 +11,49 @@ router = APIRouter(
 )
 
 
+def is_event_visible(event: models.Event, current_user: models.User, db: Session) -> bool:
+    if event.creator_user_id == current_user.id:
+        return True
+
+    if event.visibility == "public":
+        return True
+
+    if event.visibility == "invite_only":
+        invite = db.query(models.EventInvite).filter(
+            models.EventInvite.event_id == event.id,
+            models.EventInvite.user_id == current_user.id,
+        ).first()
+        return invite is not None
+
+    if event.visibility == "private":
+        # Friends may see private events
+        friendship = db.query(models.Friendship).filter(
+            ((models.Friendship.user_one_id == event.creator_user_id) &
+             (models.Friendship.user_two_id == current_user.id)) |
+            ((models.Friendship.user_one_id == current_user.id) &
+             (models.Friendship.user_two_id == event.creator_user_id))
+        ).first()
+        if friendship:
+            return True
+
+        # Accepted invite also allows access
+        accepted_invite = db.query(models.EventInvite).filter(
+            models.EventInvite.event_id == event.id,
+            models.EventInvite.user_id == current_user.id,
+            models.EventInvite.status == "accepted",
+        ).first()
+        return accepted_invite is not None
+
+    return False
+
+
 @router.post("/", response_model=schemas.EventResponse)
 def create_event(event: schemas.EventCreate, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if event.visibility == "friends":
+        raise HTTPException(status_code=400, detail="Visibility 'friends' is no longer supported")
+
     db_event = models.Event(
-        creator_user_id=current_user.id,  
+        creator_user_id=current_user.id,
         title=event.title,
         description=event.description,
         visibility=event.visibility,
@@ -33,6 +72,19 @@ def create_event(event: schemas.EventCreate, current_user: models.User = Depends
 
 
 @router.get("/", response_model=list[schemas.EventResponse])
-def get_events(db: Session = Depends(get_db)):
+def get_events(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     events = db.query(models.Event).all()
-    return events
+    visible_events = [event for event in events if is_event_visible(event, current_user, db)]
+    return visible_events
+
+
+@router.get("/{event_id}", response_model=schemas.EventResponse)
+def get_event(event_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if not is_event_visible(event, current_user, db):
+        raise HTTPException(status_code=403, detail="Not authorized to view this event")
+
+    return event
