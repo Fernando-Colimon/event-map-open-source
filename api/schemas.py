@@ -113,7 +113,11 @@ class EventInviteResponse(BaseModel):
     id: int
     event_id: int
     user_id: int
+    status: str
     created_at: datetime
+    event_title: str
+    creator_user_id: int
+    creator_email: EmailStr
 
     class Config:
         orm_mode = True

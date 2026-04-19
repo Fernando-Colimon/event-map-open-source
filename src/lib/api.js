@@ -21,7 +21,12 @@ export async function createEvent(eventData) {
 }
 
 export async function getEvents() {
-  const response = await fetch(`${API_BASE_URL}/events/`);
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/events/`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -32,8 +37,12 @@ export async function getEvents() {
 }
 
 export async function deleteEvent(eventId) {
+  const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/events/${eventId}/`, {
     method: "DELETE",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   if (!response.ok) throw new Error("failed to delete event");
   return response.json();
@@ -184,10 +193,65 @@ export async function getUserEvents(userId) {
 }
 
 export async function getFriends(userId) {
-  const response = await fetch(`${API_BASE_URL}/users/${userId}/friends`);
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/friends`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(errorText || "Failed to fetch friends");
   }
+  return response.json();
+}
+
+export async function getInvites() {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/invites/`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Failed to fetch event invites");
+  }
+
+  return response.json();
+}
+
+export async function acceptEventInvite(inviteId) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/invites/${inviteId}/accept`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Failed to accept invite");
+  }
+
+  return response.json();
+}
+
+export async function declineEventInvite(inviteId) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/invites/${inviteId}/decline`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Failed to decline invite");
+  }
+
   return response.json();
 }

@@ -103,7 +103,6 @@ async function handleSubmit(e) {
             className={inputClass(formData.visibility)}
           >
             <option value="public">Public</option>
-            <option value="friends">Friends</option>
             <option value="invite_only">Invite Only</option>
             <option value="private">Private</option>
           </select>

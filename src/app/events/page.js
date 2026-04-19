@@ -54,6 +54,12 @@ export default function EventsPage() {
             >
               Friends
             </Link>
+            <Link
+              href="/invites"
+              className="px-3 py-1 rounded-lg text-xs font-medium text-gray-500 transition-colors hover:bg-white hover:text-gray-900"
+            >
+              Invites
+            </Link>
           </div>
 
           <Link

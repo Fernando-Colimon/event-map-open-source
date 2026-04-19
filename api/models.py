@@ -162,6 +162,7 @@ class EventInvite(Base):
     id = Column(Integer, primary_key=True, index=True)
     event_id = Column(Integer, ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String, nullable=False, default="pending")
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     event = relationship("Event", back_populates="invites")
@@ -169,4 +170,5 @@ class EventInvite(Base):
 
     __table_args__ = (
         UniqueConstraint("event_id", "user_id", name="uq_event_invite_event_user"),
+        CheckConstraint("status IN ('pending', 'accepted', 'declined')", name="ck_event_invite_status_valid"),
     )
