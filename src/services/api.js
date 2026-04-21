@@ -57,3 +57,26 @@ export async function addFriend(friendEmail) {
   if (!res.ok) throw new Error("Failed to add friend");
   return res.json();
 }
+// Get Events — GET /events (auth required)
+export async function getEvents() {
+  const token = localStorage.getItem("token");
+  const res = await fetch(`${BASE_URL}/events`, {
+    headers: {
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error("Failed to fetch events");
+  return res.json();
+}
+
+// Delete Event — DELETE /events/:id
+export async function deleteEvent(eventId) {
+  const token = localStorage.getItem("token");
+  const res = await fetch(`${BASE_URL}/events/${eventId}`, {
+    method: "DELETE",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error("Failed to delete event");
+}

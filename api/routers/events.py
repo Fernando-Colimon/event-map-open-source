@@ -88,3 +88,14 @@ def get_event(event_id: int, current_user: models.User = Depends(get_current_use
         raise HTTPException(status_code=403, detail="Not authorized to view this event")
 
     return event
+
+@router.delete("/{event_id}", status_code=204)
+def delete_event(event_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if event.creator_user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this event")
+    db.delete(event)
+    db.commit()
+    
