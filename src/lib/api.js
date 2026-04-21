@@ -38,14 +38,17 @@ export async function getEvents() {
 
 export async function deleteEvent(eventId) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/events/${eventId}/`, {
+  const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
     method: "DELETE",
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
-  if (!response.ok) throw new Error("failed to delete event");
-  return response.json();
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Delete failed:", response.status, errorText);
+    throw new Error("Failed to delete event");
+  }
 }
 
 export async function registerUser(userData) {

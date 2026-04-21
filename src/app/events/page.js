@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getEvents } from "@/lib/api";
+import { getEvents, deleteEvent } from "@/lib/api";
+import { MoreVertical, Trash2 } from "lucide-react";
 
 export default function EventsPage() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function EventsPage() {
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [eventError, setEventError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -37,6 +39,7 @@ export default function EventsPage() {
   async function handleDelete(eventId) {
     if (!confirm("Are you sure you want to delete this event?")) return;
     setDeletingId(eventId);
+    setOpenMenuId(null);
     try {
       await deleteEvent(eventId);
       setEvents(events.filter((e) => e.id !== eventId));
@@ -45,7 +48,7 @@ export default function EventsPage() {
       console.error(err);
     } finally {
       setDeletingId(null);
-    } 
+    }
   }
 
   return (
@@ -93,10 +96,34 @@ export default function EventsPage() {
               {events.map((event) => (
                 <div
                   key={event.id}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-5"
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 relative"
                 >
-                  
-                  <h2 className="text-xl font-semibold text-gray-800">
+                  {/* Three dot menu */}
+                  <div className="absolute top-4 right-4">
+                    <button
+                      onClick={() =>
+                        setOpenMenuId(openMenuId === event.id ? null : event.id)
+                      }
+                      className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <MoreVertical size={16} className="text-gray-500" />
+                    </button>
+
+                    {openMenuId === event.id && (
+                      <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                        <button
+                          onClick={() => handleDelete(event.id)}
+                          disabled={deletingId === event.id}
+                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 size={14} />
+                          {deletingId === event.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <h2 className="text-xl font-semibold text-gray-800 pr-8">
                     {event.title}
                   </h2>
 
