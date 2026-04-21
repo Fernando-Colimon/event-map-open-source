@@ -127,17 +127,9 @@ def decline_event_invite(invite_id: int, current_user: models.User = Depends(get
     if invite.status != "pending":
         raise HTTPException(status_code=400, detail="Invite already processed")
 
-    invite.status = "declined"
+    db.delete(invite)
     db.commit()
-    db.refresh(invite)
 
     return {
-        "id": invite.id,
-        "event_id": invite.event_id,
-        "user_id": invite.user_id,
-        "status": invite.status,
-        "created_at": invite.created_at,
-        "event_title": invite.event.title,
-        "creator_user_id": invite.event.creator_user_id,
-        "creator_email": invite.event.creator.email,
+        "message": "Invite declined and removed"
     }

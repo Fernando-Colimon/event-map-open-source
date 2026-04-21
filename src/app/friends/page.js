@@ -2,7 +2,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getFriends, getPendingFriendRequests, acceptFriendRequest, declineFriendRequest, getUser } from "@/lib/api";
+import {
+  getFriends,
+  getPendingFriendRequests,
+  acceptFriendRequest,
+  declineFriendRequest,
+  getUser,
+  getUserEvents,
+  inviteFriendToEvent,
+  removeFriend,
+} from "@/lib/api";
 
 export default function Friends() {
   const router = useRouter();
@@ -14,6 +23,8 @@ export default function Friends() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [requestSenderMap, setRequestSenderMap] = useState({});
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [inviteOnlyEvents, setInviteOnlyEvents] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -34,6 +45,8 @@ export default function Friends() {
     try {
       const friendsData = await getFriends(currentUserId);
       setFriends(friendsData);
+      const myEvents = await getUserEvents(currentUserId);
+      setInviteOnlyEvents(myEvents.filter((event) => event.visibility === "invite_only"));
     } catch (err) {
       setError("Failed to fetch friends.");
     } finally {
@@ -86,7 +99,29 @@ export default function Friends() {
       setError(err.message);
     }
   }
+  async function handleInvite(friendId, eventId) {
+    try {
+      await inviteFriendToEvent(eventId, friendId);
+      setSuccessMessage("Friend invited successfully!");
+      setOpenMenuId(null);
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
+  async function handleRemoveFriend(friendId) {
+    try {
+      await removeFriend(friendId);
+      setFriends(friends.filter((friend) => friend.id !== friendId));
+      setSuccessMessage("Friend removed successfully.");
+      setOpenMenuId(null);
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+  
   return (
     <main className="min-h-screen flex flex-col bg-gray-50 px-4">
       <div className="w-full max-w-3xl mx-auto py-12">
@@ -158,12 +193,60 @@ export default function Friends() {
                 {friends.map((friend) => (
                   <div
                     key={friend.id}
-                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-5"
+                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 relative"
                   >
-                    <h2 className="text-lg font-semibold text-gray-800">
-                      User #{friend.id}
-                    </h2>
-                    <p className="text-gray-600 mt-1">{friend.email}</p>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h2 className="text-lg font-semibold text-gray-800">
+                          User #{friend.id}
+                        </h2>
+                        <p className="text-gray-600 mt-1">{friend.email}</p>
+                      </div>
+
+                      <div className="relative">
+                        <button
+                          onClick={() =>
+                            setOpenMenuId(openMenuId === friend.id ? null : friend.id)
+                          }
+                          className="px-2 py-1 rounded hover:bg-gray-100 text-xl leading-none text-black font-bold"
+                        >
+                          ⋮
+                        </button>
+
+                        {openMenuId === friend.id && (
+                          <div className="absolute right-0 mt-2 w-60 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                            <div className="px-4 py-2 text-sm font-semibold text-gray-700 border-b">
+                              Invite to Event
+                            </div>
+
+                            {inviteOnlyEvents.length === 0 ? (
+                              <div className="px-4 py-2 text-sm text-gray-500">
+                                No invite-only events available
+                              </div>
+                            ) : (
+                              inviteOnlyEvents.map((event) => (
+                                <button
+                                  key={event.id}
+                                  onClick={() => handleInvite(friend.id, event.id)}
+                                  className="block w-full text-left px-4 py-2 text-sm text-black hover:bg-gray-100"
+                                >
+                                  {event.title}
+                                </button>
+                              ))
+                            )}
+
+                            <div className="border-t">
+                              <button
+                                onClick={() => handleRemoveFriend(friend.id)}
+                                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                              >
+                                Remove Friend
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

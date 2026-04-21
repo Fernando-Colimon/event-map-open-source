@@ -30,14 +30,27 @@ def send_friend_request(request: dict, current_user: models.User = Depends(get_c
     
     # Check if friend request already exists
     existing_request = db.query(models.FriendRequest).filter(
-        (models.FriendRequest.sender_id == current_user.id) & 
-        (models.FriendRequest.receiver_id == friend_user.id) &
-        (models.FriendRequest.status == "pending")
+        ((models.FriendRequest.sender_id == current_user.id) &
+        (models.FriendRequest.receiver_id == friend_user.id)) |
+        ((models.FriendRequest.sender_id == friend_user.id) &
+        (models.FriendRequest.receiver_id == current_user.id))
     ).first()
-    
+
     if existing_request:
-        raise HTTPException(status_code=400, detail="Friend request already sent")
-    
+        if existing_request.status == "pending":
+            raise HTTPException(status_code=400, detail="Friend request already sent")
+
+        existing_request.sender_id = current_user.id
+        existing_request.receiver_id = friend_user.id
+        existing_request.status = "pending"
+        db.commit()
+        db.refresh(existing_request)
+
+        return {
+            "success": True,
+            "message": f"Friend request re-sent to {friend_email}",
+            "request_id": existing_request.id
+        }
     # Check if already friends
     existing_friendship = db.query(models.Friendship).filter(
         ((models.Friendship.user_one_id == current_user.id) & 
@@ -144,3 +157,25 @@ def decline_friend_request(request_id: int, current_user: models.User = Depends(
         "success": True,
         "message": "Friend request declined"
     }
+
+
+@router.delete("/{friend_id}")
+def remove_friend(
+    friend_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    friendship = db.query(models.Friendship).filter(
+        ((models.Friendship.user_one_id == current_user.id) &
+         (models.Friendship.user_two_id == friend_id)) |
+        ((models.Friendship.user_one_id == friend_id) &
+         (models.Friendship.user_two_id == current_user.id))
+    ).first()
+
+    if not friendship:
+        raise HTTPException(status_code=404, detail="Friendship not found")
+
+    db.delete(friendship)
+    db.commit()
+
+    return {"message": "Friend removed successfully"}

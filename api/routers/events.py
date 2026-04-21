@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 import models
 import schemas
@@ -19,11 +19,12 @@ def is_event_visible(event: models.Event, current_user: models.User, db: Session
         return True
 
     if event.visibility == "invite_only":
-        invite = db.query(models.EventInvite).filter(
+        accepted_invite = db.query(models.EventInvite).filter(
             models.EventInvite.event_id == event.id,
             models.EventInvite.user_id == current_user.id,
+            models.EventInvite.status == "accepted",
         ).first()
-        return invite is not None
+        return accepted_invite is not None
 
     if event.visibility == "private":
         # Friends may see private events
@@ -70,6 +71,56 @@ def create_event(event: schemas.EventCreate, current_user: models.User = Depends
     db.refresh(db_event)
     return db_event
 
+@router.post("/{event_id}/invite/{friend_id}")
+def invite_friend_to_event(
+    event_id: int,
+    friend_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if event.creator_user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only invite users to your own events")
+
+    if event.visibility != "invite_only":
+        raise HTTPException(status_code=400, detail="Only invite-only events can have invites")
+
+    friend = db.query(models.User).filter(models.User.id == friend_id).first()
+    if not friend:
+        raise HTTPException(status_code=404, detail="Friend not found")
+
+    friendship = db.query(models.Friendship).filter(
+        ((models.Friendship.user_one_id == current_user.id) &
+         (models.Friendship.user_two_id == friend_id)) |
+        ((models.Friendship.user_one_id == friend_id) &
+         (models.Friendship.user_two_id == current_user.id))
+    ).first()
+
+    if not friendship:
+        raise HTTPException(status_code=403, detail="You can only invite your friends")
+
+    existing_invite = db.query(models.EventInvite).filter(
+        models.EventInvite.event_id == event_id,
+        models.EventInvite.user_id == friend_id,
+    ).first()
+
+    if existing_invite:
+        raise HTTPException(status_code=400, detail="Friend already invited")
+
+    invite = models.EventInvite(
+        event_id=event_id,
+        user_id=friend_id,
+        status="pending"
+    )
+
+    db.add(invite)
+    db.commit()
+    db.refresh(invite)
+
+    return {"message": "Friend invited successfully"}
 
 @router.get("/", response_model=list[schemas.EventResponse])
 def get_events(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):

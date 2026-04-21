@@ -263,3 +263,39 @@ export async function declineEventInvite(inviteId) {
 
   return response.json();
 }
+
+export async function inviteFriendToEvent(eventId, friendId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_BASE_URL}/events/${eventId}/invite/${friendId}`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Failed to invite friend");
+  }
+
+  return response.json();
+}
+
+export async function removeFriend(friendId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_BASE_URL}/friends/${friendId}`, {
+    method: "DELETE",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Failed to remove friend");
+  }
+
+  return response.json();
+}
